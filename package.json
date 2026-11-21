@@ -32,7 +32,7 @@
 		"lint": "eslint src --ext ts",
 		"watch": "tsc -watch -p ./",
 		"pretest": "npm run compile && npm run lint",
-		"test": "node ./out/test/runTest.js"
+		"test": "vscode-test"
 	},
 	"devDependencies": {
 		"@types/mocha": "^10.0.10",
