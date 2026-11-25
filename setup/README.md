@@ -8,7 +8,7 @@ wsl --install
 ```
 
 ## Lua
-- The [setup/lua.sh](lua.sh) script installs Lua 5.4 and LuaRocks via [hererocks](https://github.com/luarocks/hererocks) which is self-contained.
+- The [setup/lua.sh](lua.sh) script installs Lua 5.4 and LuaRocks from the configured Ubuntu repositories, then creates a self-contained `.lua` module tree.
 - The module dependencies are in the [rockspec](vscode-wow-api-scm-0.rockspec).
 ```sh
 # wherever you want to clone the repo
@@ -30,7 +30,7 @@ lua luasrc/init.lua
 ```
 
 ## VS Code Extension
-The [setup/npm.sh](npm.sh) script installs the npm packages for TypeScript definitions and ESLint.
+Install Node.js 24 and npm from a trusted package source before running [setup/npm.sh](npm.sh). The script checks the Node.js major version and installs the npm packages for TypeScript definitions and ESLint.
 ```sh
 ./setup/npm.sh
 ```
@@ -58,3 +58,6 @@ npx vsce package
 ```
 > [!NOTE]  
 > The [package.json](/package.json) already includes [vsce](https://code.visualstudio.com/api/working-with-extensions/publishing-extension) as a dev dependency so you won't need to install it first.
+
+## Updating setup dependencies
+The setup scripts intentionally use signed distribution packages or preinstalled tools instead of executing remote bootstrap installers. When changing a supported tool version, review its release provenance and prefer a signed system package. If a remote bootstrap is unavoidable, pin it to a reviewed full commit, download it without executing it, verify a checked-in SHA-256 digest, and only then run it. Review both the immutable reference and digest in the same change.
