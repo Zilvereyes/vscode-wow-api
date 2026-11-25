@@ -28,6 +28,28 @@ const luaSettings = [
 	"workspace.library",
 ];
 
+type ConfigurationScope = "User" | "Workspace";
+
+interface ConfigurationScopeInspection {
+	globalValue?: unknown;
+	workspaceValue?: unknown;
+	workspaceFolderValue?: unknown;
+	workspaceLanguageValue?: unknown;
+	workspaceFolderLanguageValue?: unknown;
+}
+
+export function isGlobalConfigurationScope(inspection: ConfigurationScopeInspection | undefined, scope: ConfigurationScope) {
+	return inspection?.globalValue === scope
+		&& inspection.workspaceValue === undefined
+		&& inspection.workspaceFolderValue === undefined
+		&& inspection.workspaceLanguageValue === undefined
+		&& inspection.workspaceFolderLanguageValue === undefined;
+}
+
+function inspectConfigurationScope() {
+	return wow_config.inspect<ConfigurationScope>("luals.configurationScope");
+}
+
 export function configLuaLS(onDidChange: boolean) {
 	if (!wow_config.get("devMode")) {
 		setRuntime();
@@ -37,13 +59,10 @@ export function configLuaLS(onDidChange: boolean) {
 }
 
 function getConfigurationTarget() {
-	const scope = wow_config.get("luals.configurationScope");
-	if (scope === "User") {
+	if (isGlobalConfigurationScope(inspectConfigurationScope(), "User")) {
 		return vscode.ConfigurationTarget.Global;
 	}
-	else if (scope === "Workspace") {
-		return vscode.ConfigurationTarget.Workspace;
-	}
+	return vscode.ConfigurationTarget.Workspace;
 }
 
 // disable lua libraries so we can load our wow lua version
@@ -98,7 +117,8 @@ function cleanConfigTarget(onDidChange: boolean) {
 			}
 		}
 	}
-	else if (configTarget === vscode.ConfigurationTarget.Workspace && onDidChange) {
+	else if (configTarget === vscode.ConfigurationTarget.Workspace && onDidChange
+		&& isGlobalConfigurationScope(inspectConfigurationScope(), "Workspace")) {
 		for (const v of luaSettings) {
 			if (v === "workspace.library") {
 				// preserve any user defined paths in User scope
@@ -141,10 +161,12 @@ export function registerDiagnostics() {
 				else if (diag.code === "assign-type-mismatch") {
 					if (diag.message.includes("table|")) {
 						// disable the diagnostic if assigning any of our types
-						const disable: string[] = lua_config.get("diagnostics.disable")!;
+						const configTarget = getConfigurationTarget();
+						const disable = configTarget === vscode.ConfigurationTarget.Global
+							? lua_config.inspect<string[]>("diagnostics.disable")?.globalValue ?? []
+							: lua_config.get<string[]>("diagnostics.disable") ?? [];
 						if (!disable.includes("assign-type-mismatch")) {
-							disable.push("assign-type-mismatch");
-							lua_config.update("diagnostics.disable", disable, getConfigurationTarget());
+							lua_config.update("diagnostics.disable", [...disable, "assign-type-mismatch"], configTarget);
 						}
 					}
 				}
